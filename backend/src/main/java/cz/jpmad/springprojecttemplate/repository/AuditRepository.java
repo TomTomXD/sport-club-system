@@ -23,4 +23,8 @@ public class AuditRepository {
         jdbc.update("INSERT INTO audit_log(id,actor_user_id,occurred_at,action,entity_type,entity_key,reason) VALUES(?,?,?,?,?,jsonb_build_object('guardian_person_id',CAST(? AS text),'player_id',CAST(? AS text)),?)",
                 UUID.randomUUID(),actorId,Timestamp.from(clock.instant()),action,"guardian_links",guardian.toString(),player.toString(),reason);
     }
+    public void recordCompetitionEntry(UUID actorId,String action,UUID competitionSeason,UUID teamSeason) {
+        jdbc.update("INSERT INTO audit_log(id,actor_user_id,occurred_at,action,entity_type,entity_key) VALUES(?,?,?,?,?,jsonb_build_object('competition_season_id',CAST(? AS text),'team_season_id',CAST(? AS text)))",
+                UUID.randomUUID(),actorId,Timestamp.from(clock.instant()),action,"competition_entries",competitionSeason.toString(),teamSeason.toString());
+    }
 }

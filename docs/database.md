@@ -1,6 +1,10 @@
 # Databáze sportovního klubu
 
-Tento dokument a [DBML](sport-club.dbml) popisují **cílový model 38 tabulek pro PostgreSQL 16**. Implementované V1–V4 obsahují stále 12 tabulek; dalších 26 je plán. P1–P3 dodávají členský základ E1, nikoli hotovou klubovou aplikaci nebo uzavřenou úplnou akceptaci E1. Jedna instalace má jeden klub a více databázových sportů; každý tým právě jeden sport. [Požadavky](requirements.md) a [ověření](verification.md) oddělují rozsah a skutečné důkazy.
+Tento dokument a [DBML](sport-club.dbml) popisují **cílový model 38 tabulek pro PostgreSQL 16**. V1–V4 mají 12 tabulek, V5 přidává match_formats a V6 šest soutěžních tabulek: celkem 19, dalších 19 je plán. P1–P4 dodávají členský základ a soutěžní konfiguraci, nikoli hotovou klubovou aplikaci nebo uzavřenou úplnou akceptaci E1/E3. Jedna instalace má jeden klub a více databázových sportů; každý tým právě jeden sport. [Požadavky](requirements.md) a [ověření](verification.md) oddělují rozsah a skutečné důkazy.
+
+## P4 — V5 a V6
+
+V5 realizuje navržené match_formats, V6 competitions, competition_seasons, competition_point_rules, competition_forfeit_rules, competition_ranking_criteria a competition_entries. Přidává FK/indexy, UUID, bigint verze, jmenný EXCLUDE guard proti překryvům inkluzivních rozsahů a triggery pro stejný sport/sezónu, neměnnou identitu, archivaci a historické uzamčení rodiče i pravidel/přihlášek. Bodovací pravidla jsou úplně validovaná v service a všechny části konfigurace se zapisují v jedné transakci. Žádný ručně spuštěný SQL seed není potřebný pro přidání soutěže nebo sportu. V1–V5 se při V6 nepřepisují. Uzamčení při prvním výsledku dodá až P5/P6; jeho guardy jsou již přítomné. Čistá instalace a upgrade se ověřují pouze na izolovaných testovacích DB, viz [ověření](verification.md); běžná uživatelova DB nebyla kontrolována ani měněna. Při neřízeném ručním DDL je před nasazením nutné individuálně porovnat schéma a Flyway historii; migrace nic nepřebírá pomocí baseline.
 
 ## Implementované V1–V4
 
@@ -12,7 +16,7 @@ V3 instaluje `btree_gist`. EXCLUDE omezuje překryvy stejného hráče/trenéra 
 
 ADMIN čte historii i soupisku ke zvolenému dni; běžný účet pouze aktuálně oprávněný přesný sezónní tým. Roster ani základní player detail nevracejí kontakty či datum narození. Aktuální scope omezuje také počty; vlastní hráč a schválený STANDARD rodič dítěte čtou celou příslušnou členskou historii, trenér pouze aktuálně svěřené team_seasons. Rodič získá dnešní tým přes dnešní členství schváleného dítěte, CHILD pouze přes vlastní hráčské členství. Budoucí historické výsledkové pohledy a opravy účastí událostí doplní P5/P6.
 
-NOT NULL pro users.person_id vyžaduje pozdější backfill a novou migraci. Formáty, soutěže, výsledky, statistiky, finance a komunikace níže jsou **cílový návrh**. Další sport i jeho pravidla se budou spravovat v UI bez sportovních větví, ručního SQL nebo seed skriptu.
+NOT NULL pro users.person_id vyžaduje pozdější backfill a novou migraci. Formáty a soutěžní konfiguraci realizují V5/V6; výsledky, statistiky, finance a komunikace níže jsou **cílový návrh**. Další sport, formáty i ročníky a jejich pravidla se spravují v UI bez sportovních větví, ručního SQL nebo seed skriptu.
 
 ## Přehled tabulek
 

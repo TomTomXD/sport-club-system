@@ -1,6 +1,6 @@
-# REST kontrakt: implementované P1–P3 a navazující plán
+# REST kontrakt: implementované P1–P4 a navazující plán
 
-**E0 + P1–P3:** identita/setup/sporty, ADMIN osoby/sezóny/týmy/hráči/členství, účty a rodičovské vazby, scoped soupisky/historie a omezené dětské přihlášení mají implementaci. Události, soutěže, výsledky, finance, notifikace a komunikace jsou stále plánované. [Ověření](verification.md) zaznamenává provedené běhy; [DBML](sport-club.dbml) popisuje celý cílový model.
+**E0 + P1–P4:** identita/setup/sporty, ADMIN osoby/sezóny/týmy/hráči/členství, účty/rodiče, scoped soupisky/historie a omezené CHILD, formáty, soutěže, ročníky, datová pravidla a přihlášky mají implementaci. Události, výsledky a výpočet pořadí/statistik, finance, notifikace a komunikace jsou plánované v P5–P9. [Ověření](verification.md) zaznamenává provedené běhy; [DBML](sport-club.dbml) popisuje celý cílový model.
 
 ## Implementované adresování a autentizace
 
@@ -191,11 +191,52 @@ Frontend `/admin/accounts`, `/admin/players/[playerId]/guardians`, `/my-children
 
 `notification_deliveries` má PK `(notification_id,recipient_id)`, nemá deliveryId. Recipient přečtení se bere výhradně ze session; klient jej neposílá. Opakované read je bezpečně 204 a zachová první readAt. CHILD nedostane FEE_DUE_SOON/FEE_OVERDUE ani jejich počty; otevření cíle starého oznámení nepřeskakuje aktuální autorizaci.
 
-## E3 — soutěže, výsledkové revize a dynamické statistiky
+## P4 — formáty zápasu
+
+P4 poskytuje `/admin/match-formats` nad Flyway V5. Navazující soutěžní konfiguraci realizuje V6 a rozhraní níže. Výsledky lokálních kontrol uvádí [ověření](verification.md).
+
+| Metoda a cesta | Kontrakt |
+| --- | --- |
+| `GET /match-formats?page=0&size=20&sportId=UUID` | ADMIN stránka; volitelný sport omezuje items i count. Stabilní řazení name/id. |
+| `GET /match-formats/{id}` | ADMIN detail včetně configuration, řetězcové version a nullable lockedAt. |
+| `POST /match-formats` | ADMIN + CSRF; `{sportId,name,configuration}`. Aktivní sport, odpověď 201 s verzí `"0"`. |
+| `PUT /match-formats/{id}` | ADMIN + CSRF; úplný `{version,name,configuration}`. Neměnný sport, stará verze → 409 OPTIMISTIC_LOCK_CONFLICT. |
+
+Configuration obsahuje scoreMode (SUM_SCORE/WON_PARTS), allowDraw, periodsRequired, periodLabel, nullable regulationPeriodCount a winsRequired, allowOvertime, allowShootout, shootoutWinnerBonus, friendlyForfeitLoserScore, friendlyForfeitWinnerScore. Ostatní pole jsou povinná. Čísla mají rozsah PostgreSQL integer; počty jsou kladné, skóre/bonus nezáporné, vítěz kontumace má vyšší skóre. Bez nájezdů je bonus 0. SUM_SCORE nepřijímá winsRequired. WON_PARTS vyžaduje povinné části a winsRequired, bez remízy/prodloužení/nájezdů/pevného počtu částí.
+
+LockedAt nastaví až budoucí výsledkový průchod; klient jej nemění. Použitý formát dovolí jen přejmenování se stejnou konfigurací, jinak 409 CONFIGURATION_LOCKED. UI uchová rozepsané hodnoty a nabízí výslovné zahození a nové načtení. Správní navigace používá existující MANAGE_CLUB; backend samostatně vyžaduje aktuálního dokončeného enabled STANDARD ADMIN. USER, trenér bez ADMIN, rodič, CHILD a PENDING přístup nemají. Mutace berou klubový zámek před fresh auth a auditují ve stejné transakci. Delete endpoint ani výpočet výsledků zatím není.
+
+## P4 — soutěže, ročníky a přihlášky
+
+UI `/admin/competitions` vytváří a přejmenovává soutěže a zakládá celé ročníky. `/admin/competitions/{competitionSeasonId}` spravuje pravidla a přihlášky. Všechny následující endpointy vyžadují aktuálního dokončeného enabled STANDARD ADMIN, mutace také CSRF, klubový write lock a transakční audit. Čtení používá klubový read lock; USER/trenér/rodič bez ADMIN, CHILD a PENDING tento správní obsah ani counts nedostanou.
+
+| Metoda a cesta | Skutečný kontrakt |
+| --- | --- |
+| `GET /competitions?page=0&size=20&sportId=UUID` | Stránka `{items,page,size,totalElements,totalPages}`, items `{id,sportId,sportName,name}`; stabilní name/id. |
+| `GET /competitions/{id}` | Stejný detail soutěže. |
+| `POST /competitions` | `{sportId,name}` → 201; aktivní sport, name 1–160 znaků. Sport/identita se nemění. |
+| `PUT /competitions/{id}` | `{name}` → 200; pouze přejmenování, nikoli změna sportu. |
+| `GET /competition-seasons?page=0&size=20&sportId=UUID&competitionId=UUID&seasonId=UUID` | Volitelné filtry omezují items i counts. Items jsou SeasonSummary, řazení soutěž/sezóna od nejnovější/id. |
+| `GET /competition-seasons/{id}` | `{season:SeasonSummary,configuration}`. |
+| `POST /competition-seasons` | `{competitionId,seasonId,matchFormatId,configuration}` → 201; atomické vytvoření úplné konfigurace. Aktivní sport, otevřená sezóna, formát stejného sportu a jedinečná dvojice soutěž/sezóna. |
+| `PUT /competition-seasons/{id}` | `{version,configuration}` → 200; atomická náhrada všech pravidel a H2H nastavení. Identita, sezóna a formát ročníku jsou neměnné. |
+| `GET /competition-seasons/{id}/point-rules`, `/forfeit-rules`, `/ranking-criteria` | Oprávněný přímý read příslušné omezené kolekce; mutace pravidel probíhá výhradně atomickým PUT ročníku. |
+| `GET /competition-seasons/{id}/entries?page=0&size=20` | Stránka `{teamSeasonId,displayName,isClubTeam}` se shodným count scope, historickými sezónními názvy, řazení displayName/id. |
+| `POST /competition-seasons/{id}/entries` | `{version,teamSeasonId}` → 200 SeasonSummary s novou verzí; tým stejného sportu i sezóny, klubový nebo externí; duplicita → 409 DUPLICATE_RESOURCE. |
+| `DELETE /competition-seasons/{id}/entries/{teamSeasonId}` | JSON `{version}` → 200 SeasonSummary; odebrání pouze nepoužitého otevřeného ročníku, chybějící přihláška → 404. |
+
+SeasonSummary obsahuje `id,competitionId,competitionName,seasonId,seasonName,sportId,sportName,matchFormatId,matchFormatName,version,resultsRevision,lockedAt,archived`. Version, resultsRevision i totalElements jsou přesné řetězce. Mutace pravidel i přihlášek zvyšují tutéž version; stará verze → 409 OPTIMISTIC_LOCK_CONFLICT. Neplatná/nekanonická nebo přetékající verze → 400 VALIDATION_ERROR. Klient nemůže zapisovat resultsRevision, lockedAt ani identitu přes obecné DTO. První část/výsledek nastaví lockedAt až v P5/P6; P4 poskytuje a ověřuje ochranu použitých dat.
+
+Configuration obsahuje `headToHeadMissingPolicy` (REQUIRE_COMPLETE/PLAYED_ONLY), kladné `headToHeadMeetingsPerPair`, boolean `restartHeadToHeadOnSubgroup`, `pointRules` (2–100), obě `forfeitRules` a `rankingCriteria` (1–10). Každé pointRule má `outcome` WIN/DRAW/LOSS, `ending` REGULATION/OVERTIME/SHOOTOUT, nullable inkluzivní `ownScoreMin,ownScoreMax,opponentScoreMin,opponentScoreMax` a nezáporné `points`; nullable hranice je neomezená. Čísla jsou PostgreSQL integer, priority a počty kladné. Ukončení musí povolit formát; DRAW je možné jen podle allowDraw a nikdy pro nájezdy. Pravidla pro stejné outcome/ending se nesmějí překrývat. Server vyžaduje úplné pokrytí povolených konečných skóre (0 až integer max): u WON_PARTS končí vítěz na winsRequired a poražený pod ním; u nájezdů je rozdíl konfigurovaný bonus, při nulovém bonusu je možné stejné skóre i s WIN/LOSS. Chybná nebo neúplná konfigurace → 400 VALIDATION_ERROR, bez částečného zápisu.
+
+ForfeitRule má `decision` FORFEIT_HOME/FORFEIT_AWAY a `homeScore,awayScore,homePoints,awayPoints`; každé rozhodnutí právě jednou, nezáporná čísla a správný vítěz. Bodování kontumace není běžná prohra. RankingCriterion má souvislou `priority` od 1, jedinečnou `metric` z DBML a `direction` ASC/DESC; HEAD_TO_HEAD metriky tvoří souvislý blok, PART_SCORE metriky vyžadují povinné části. UI podporuje přidání/odebrání bodovacích pravidel, hranice skóre, obě kontumace i přesuny kritérií a jejich směr. Konfigurace je datová, žádné SQL nebo sportovní skripty.
+
+Archivace a lockedAt odmítají změny pravidel, H2H politiky a přihlášek s 409 CONFIGURATION_LOCKED; čtení zůstává. Změna dosud nepoužitého sdíleného formátu musí zachovat platnost všech připojených ročníků, jinak stejný konflikt; archivovaný/použitý ročník blokuje změnu pravidel formátu. Změna hranic sezóny se odmítne i tehdy, má-li zatím pouze ročník a žádný tým. Při 409 UI zachová rozepsaná data a nabídne výslovné zahození a reload; nepokouší se mutaci automaticky opakovat. Audit přihlášky ukládá oba klíče vazby.
+
+## E3 — navazující výsledkové revize a dynamické statistiky
 
 | UI | Plánované API |
 | --- | --- |
-| `/admin/match-formats`, `/admin/competitions` | ADMIN `/match-formats`, `/competitions`, `/competition-seasons`, jejich `/point-rules`, `/forfeit-rules`, `/ranking-criteria`; H2H politika v DTO ročníku |
 | `/competitions/[competitionSeasonId]` | Scoped `/competition-seasons/{id}/matches`, `/standings`; rows, resultsRevision a vysvětlení použitých kritérií vrací backend |
 | `/matches/[eventId]/result`, `/history` | `/matches/{eventId}/result-revisions`, `/.../{revisionId}/confirm`, `/annul`; očekávaná matchVersion, supersedesRevisionId a correctionReason při opravě |
 | `/admin/statistic-definitions` | ADMIN `/statistic-definitions`, `/.../{id}/versions`; name,valueType,aggregation,unit,minValue,maxValue podle DBML |

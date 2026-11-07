@@ -5,9 +5,10 @@ import { mapErrorToMessage } from "@/api/errorMapper";
 import { FormField } from "../FormField";
 import type { PersonRequest } from "@/api/types";
 
-export function SelectField({ name, label, children, hint, ...input }: { name: string; label: string; children: ReactNode; hint?: string } & SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectField({ name, label, children, hint, error, ...input }: { name: string; label: string; children: ReactNode; hint?: string; error?: string } & SelectHTMLAttributes<HTMLSelectElement>) {
   const id = useId();
-  return <div className="field"><label htmlFor={id}>{label}</label><select {...input} id={id} name={name} aria-describedby={hint ? `${id}-hint` : undefined}>{children}</select>{hint && <span id={`${id}-hint`} className="field-hint">{hint}</span>}</div>;
+  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ");
+  return <div className="field"><label htmlFor={id}>{label}</label><select {...input} id={id} name={name} aria-invalid={error ? true : undefined} aria-describedby={describedBy || undefined}>{children}</select>{hint && <span id={`${id}-hint`} className="field-hint">{hint}</span>}{error && <span id={`${id}-error`} className="field-error">{error}</span>}</div>;
 }
 
 export function FormError({ error, fieldErrors = {} }: { error: unknown; fieldErrors?: Record<string, string> }) {

@@ -12,6 +12,10 @@ Server má pro CHILD allowlist metody a cesty jen pro dostupné vlastní a scope
 
 Person-link, změny role/typu/přístupu, aktivace a guardian grant/revoke vyžadují odůvodnění. Správní mutace používají klubový výhradní zámek před fresh auth; běžná čtení sdílený zámek. Posledního enabled STANDARD COMPLETE ADMIN nelze odebrat. STANDARD→CHILD odmítá ADMIN, jakoukoli zachovanou trenérskou historii a neodvolané vazby jako rodič; výsledná změna typu je disabled. Použitá osoba účtu se nepřepojuje. Vlastní zástupce, CHILD zástupce a cyklický řetězec se odmítají. Následující úplná matice dále obsahuje dosud neimplementované operace.
 
+## P4: formáty a soutěžní konfigurace
+
+`/match-formats`, `/competitions`, `/competition-seasons` a všechny jejich podzdroje vyžadují dokončeného enabled STANDARD ADMIN. UI používá existující MANAGE_CLUB, backend účet ověří sám. Detaily, seznamy, konfigurace i přihlášky včetně počtů jsou správní údaje; CHILD allowlist se nerozšiřuje. Čtení bere sdílený klubový zámek, mutace výhradní před fresh auth; CSRF a audit ve stejné transakci jsou povinné. Verze ročníku chrání společně pravidla i přihlášky. Archivovaný nebo historicky uzamčený ročník je pouze ke čtení; administrátorské přejmenování samotné soutěže/formátu nemění pravidla. Nejde o budoucí sportovní čtení výsledků/tabulek ostatních kontextů z P5/P6.
+
 ## Přihlašovací základ
 
 Zachovává se `User`, `UserRepository`, `UserService` jako `UserDetailsService`, BCrypt a JSON login ze šablony. Spring udržuje session `JSESSIONID`; Next.js používá credentials a CSRF token při měnících požadavcích. Přihlášení rotuje identifikátor session, odhlášení ji invaliduje a odstraní cookie. Produkční cookie je HttpOnly, Secure přes HTTPS a s vhodným SameSite. Nezavádí se HTTP Basic, JWT ani druhá autentizace na frontendu.

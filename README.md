@@ -6,6 +6,8 @@ Základ zachovává Spring REST API, UUID účty a BCrypt, session `JSESSIONID`,
 
 P2 přidává V3, sezóny, vlastní i externí týmy, hráče bez účtů, trenérská přiřazení, intervalová členství, historii a oprávněné soupisky. P3 přidává V4, administrátorskou správu účtů na ověřené osoby, person-link, role/typ/přístup, schválené rodičovské vazby, Moje děti a omezené CHILD přihlášení ke sportovním údajům. Události, výsledky, statistiky, příspěvky, komunikace a notifikace zůstávají **plánované**. Předběžný zákaz finančních cest pro CHILD není implementovaná finanční agenda. Rozsah implementace popisuje [API kontrakt](docs/api-contract.md); skutečně provedené kontroly a jejich omezení uvádí [ověření](docs/verification.md).
 
+P4 přidává **formáty zápasu** (`/admin/match-formats`) a **soutěže a ročníky** (`/admin/competitions`) pro dokončeného aktivního STANDARD ADMIN: vyhodnocení skóre/částí, úplné bodování podle výsledku/ukončení a rozsahů skóre, obě soutěžní kontumace, kritéria pořadí a H2H politiku, přihlášky klubových i externích sezónních týmů. V5/V6 rozšiřují schéma na 19 tabulek. Server odmítá cizí sport/sezónu, neúplná či překrývající se pravidla, staré verze a změny historických/archivovaných konfigurací. Výsledky, výpočet tabulek a statistik patří do P5/P6. Lokální ověření viz [záznam](docs/verification.md).
+
 ## Požadavky
 
 - Java **17** a Maven Wrapper (v repozitáři; Maven není nutné instalovat).

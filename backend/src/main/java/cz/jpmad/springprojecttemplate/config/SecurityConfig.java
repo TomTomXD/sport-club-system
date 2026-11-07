@@ -95,7 +95,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/csrf", "/info/**", "/actuator/health").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/actuator/**", "/admin/**", "/sports", "/sports/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/**", "/admin/**", "/sports", "/sports/**", "/match-formats", "/match-formats/**",
+                                "/competitions", "/competitions/**", "/competition-seasons", "/competition-seasons/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->

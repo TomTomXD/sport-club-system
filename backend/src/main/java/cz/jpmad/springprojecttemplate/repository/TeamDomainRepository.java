@@ -44,8 +44,8 @@ public class TeamDomainRepository {
     }
     public Page<SeasonResponse> seasons(int page,int size) { return page("SELECT * FROM seasons",params(),"starts_on DESC,id",page,size,SEASON); }
     public SeasonResponse season(UUID id) { return one("SELECT * FROM seasons WHERE id=:id",params().addValue("id",id),SEASON); }
-    // Příští migrace musí přidat také nové odkazy soutěží, událostí a příspěvků.
-    public boolean seasonUsed(UUID id) { return exists("SELECT count(*) FROM team_seasons WHERE season_id=:id",params().addValue("id",id)); }
+    // Later event/fee deliveries must extend this check with their season references.
+    public boolean seasonUsed(UUID id) { return exists("SELECT (SELECT count(*) FROM team_seasons WHERE season_id=:id)+(SELECT count(*) FROM competition_seasons WHERE season_id=:id)",params().addValue("id",id)); }
     public boolean seasonNameUsed(String name,UUID except) { return exists("SELECT count(*) FROM seasons WHERE name=:name AND id<>:id",params().addValue("name",name).addValue("id",except)); }
     public void insertSeason(UUID id,String name,LocalDate from,LocalDate to) { jdbc.update("INSERT INTO seasons(id,name,starts_on,ends_on) VALUES(:id,:name,:f,:t)",params().addValue("id",id).addValue("name",name).addValue("f",from).addValue("t",to)); }
     public void updateSeason(UUID id,String name,LocalDate from,LocalDate to) { jdbc.update("UPDATE seasons SET name=:name,starts_on=:f,ends_on=:t WHERE id=:id",params().addValue("id",id).addValue("name",name).addValue("f",from).addValue("t",to)); }

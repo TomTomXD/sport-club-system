@@ -1,6 +1,28 @@
 # Uživatelská příručka
 
-**Dostupné E0 + P1–P3:** účty a osobní údaje, bezpečné prvotní nastavení, sporty, sezóny, týmy, hráči, členství, rodičovské vazby, Moje děti a omezené dětské přihlášení. Níže jsou skutečné obrazovky této dodávky. Kalendář, dostupnost/nominace/docházka, soutěže, výsledky/statistiky, příspěvky, notifikace a konverzace jsou odděleně označený **plán**. Celý projekt ani úplná akceptace E1 nejsou uzavřené; rozsah sledují [požadavky](requirements.md), provedené kontroly [ověření](verification.md).
+**Dostupné E0 + P1–P4:** účty/osoby, bezpečný setup, sporty, sezóny, týmy, hráči, členství, rodiče, Moje děti, omezený CHILD a ADMIN formáty, soutěže, ročníky, pravidla a přihlášky týmů. Kalendář, dostupnost/nominace/docházka, výsledky/statistiky a výpočet pořadí, finance, notifikace a konverzace zůstávají **plán** v P5–P9. Celý projekt ani úplná akceptace E1/E3 nejsou uzavřené; rozsah sledují [požadavky](requirements.md), provedené kontroly [ověření](verification.md).
+
+## Formáty zápasu — P4
+
+Stránka **Formáty zápasu** (`/admin/match-formats`) je dostupná dokončenému aktivnímu STANDARD ADMIN přes správní navigaci. Vyžaduje schéma po Flyway V5. Běžný uživatel, rodič, trenér bez ADMIN ani CHILD k této správě přístup nemají. Výsledky lokálních kontrol uvádí [ověření](verification.md).
+
+Vyberte existující aktivní sport, název formátu, vyhodnocení a označení částí. **Součet skóre** dovoluje například dva poločasy s remízou nebo čtyři čtvrtiny bez remízy s prodloužením. **Počet vyhraných částí** potřebuje povinnou evidenci částí a počet potřebných vítězství; nepovoluje remízu, prodloužení, nájezdy ani pevný počet částí. Prázdný počet částí znamená neomezený počet. Skóre přátelské kontumace musí určit vítěze; soutěžní body se zde nenastavují.
+
+**Upravit formát** otevře konfiguraci. Použitý formát lze pouze přejmenovat. Změna pravidel nesmí zneplatnit připojený ročník; archivovaný nebo použitý ročník takovou změnu blokuje. Při konfliktu se rozepsaná data zachovají; **Zahodit úpravy a načíst aktuální stav** je výslovně nahradí serverovým stavem. Zápasy a výsledky patří do P5/P6.
+
+## Soutěže, ročníky a přihlášky — P4
+
+Dokončený aktivní STANDARD ADMIN otevře **Soutěže a ročníky** (`/admin/competitions`). Ostatní účty k této správě přístup nemají.
+
+1. Připravte aktivní sport, jeho formát zápasu a otevřenou sezónu. V části **Nová soutěž** vyberte sport a název; identita sportu se později nemění. Název soutěže lze opravit samostatným formulářem.
+2. V **Nový soutěžní ročník** vyberte soutěž, sezónu a formát stejného sportu. Jedna soutěž má v sezóně nejvýše jeden ročník; jeho soutěž/sezónu/formát později nepřepojíte. Při výběru formátu se připraví editovatelná bodovací pole, žádná sportovní šablona se sama neukládá.
+3. Zadejte **Přidělené body** pro každý povolený výsledek a ukončení. U fotbalu lze nastavit například výhra/remíza/prohra 3/1/0, u basketbalu výhra/prohra 2/1 pro základní dobu i povolená prodloužení. Pomocí **Přidat bodovací pravidlo** vytvořte další rozsahy. Hranice skóre jsou včetně krajních hodnot; prázdná hranice je neomezená. Server odmítne překryv, chybějící povolený výsledek nebo mezeru v rozsahu. Pro vyhrané části se vyplňují jen dosažitelné konečné počty částí.
+4. Vyplňte skóre a body domácích/hostů pro **Kontumace domácích** i **Kontumace hostů**. Provinivší se strana musí prohrát; její soutěžní body mohou být jiné než u běžné prohry, například basketbalová kontumace 0:20 s body 0:2 oproti běžné porážce za 1 bod. Tyto údaje nenahrazují přátelskou kontumaci z formátu.
+5. V **Kritéria pořadí** přidejte metriky a směr, pomocí **Posunout výš/níž** nastavte pořadí. Metriky se nesmějí opakovat. Vzájemné metriky musí být pohromadě; skóre částí vyžaduje povinné části ve formátu. Zvolte práci s neúplnými vzájemnými zápasy, počet zápasů dvojice a případné opakování vzájemného bloku v menší shodné podskupině.
+6. **Vytvořit soutěžní ročník** uloží vše v jedné transakci. Chyba nezanechá neúplný ročník. Otevře se detail **Pravidla a přihlášky**, kde **Zobrazit pravidla ročníku** ukazuje uložené hodnoty a **Upravit pravidla ročníku** otevře celé editovatelné nastavení.
+7. V administraci týmů připravte klubové týmy i externí soupeře ve stejné sezóně a sportu. V detailu ročníku zvolte **Tým do soutěže → Přihlásit tým**. Každá přihláška používá sezónní název; duplicitní přihlášku ani cizí sport/sezónu backend nepřijme. **Odebrat přihlášku** je dostupné jen u nepoužitého otevřeného ročníku.
+
+Pravidla i přihlášky sdílejí verzi ročníku. Při souběhu se rozepsané hodnoty zachovají a **Zahodit úpravy a načíst aktuální ročník** je výslovně nahradí serverovým stavem. Během úpravy pravidel jsou mutace přihlášek pozastavené, aby reload neztratil rozpracovaná pravidla. Po archivaci sezóny nebo historickém uzamčení zůstane čtení a přihlášené týmy; pravidla/přihlášky se nepřepisují. Nová odlišná použitá pravidla vyžadují nový formát/ročník. P4 konfiguruje budoucí výpočty; samotné zápasy, výsledky a tabulky dodají P5/P6.
 
 ## Přihlášení a vlastní osoba
 
@@ -96,7 +118,7 @@ Stačí jeden STANDARD ADMIN, který si přiřadí trenérství, založí souča
 
 | Klubový kontext | Povinná agenda navazujících balíčků |
 | --- | --- |
-| Administrátor | P4 soutěže, formáty a datová pravidla; P5 události/schránka; P6 dynamické statistiky, výsledky a pořadí; P7 předpisy, skutečné částečné úhrady/storna a splatnostní výzvy; P8 samostatné konverzace; P9 úplné HTTPS předání a obnova. |
+| Administrátor | P5 události/schránka; P6 dynamické statistiky, výsledky a výpočet pořadí; P7 předpisy, skutečné částečné úhrady/storna a splatnostní výzvy; P8 konverzace; P9 úplné HTTPS předání a obnova. |
 | Trenér | Publikovat TRAINING/MATCH/OTHER, číst dostupnost, připravit a publikovat nominaci, zvlášť zapsat skutečnou docházku/nastoupení, výsledek a statistiky; povolené konverzace a historie. Nominace nebude znamenat přítomnost. Samotné trenérství neudělí finance nebo správu rodičů. |
 | Hráč | Vlastní dostupnost/omluva, čtení nominace, docházky, výsledků a statistik, vlastní schránka a oprávněná komunikace. STANDARD navíc vlastní příspěvky; CHILD žádné finance ani finanční notifikace/počty. |
 | Rodič | Za schválené dítě dostupnost a omluva, čtení nominace, docházky, výsledků/statistik a příspěvků, výzvy před i po splatnosti a oprávněné konverzace. Platbu provede mimo aplikaci a skutečnou úhradu zaznamená ADMIN. |

@@ -1,5 +1,69 @@
 # Ověření projektu
 
+## 6. 11. 2026 — dokončení celého P4 a lokální akceptace
+
+Dokončen celý pracovní balíček **P4 — základ soutěží**, nikoli jen formáty: soutěže, ročníky, přihlášky klubových/externích sezónních týmů, úplné bodování podle výsledku/ukončení a rozsahů skóre, obě soutěžní kontumace, kritéria pořadí včetně H2H politiky, skutečné ADMIN API i UI. Navazuje na R12 a konfigurační části R13/R14/R16, T01–T04/T07/T08/T10/T11/T14 a obecné autorizační hranice. V5/V6 realizují 19 z 38 cílových tabulek. Výsledky, první uzamčení při výsledku a výpočet tabulek/statistik jsou samostatné P5/P6; lokální akceptace P4 neuzavírá E1/E3 ani celý projekt.
+
+| Kontrola | Skutečný finální výsledek |
+| --- | --- |
+| Backend Java 17 / Maven Wrapper verify | **84/84 PASS**, 0 failures/errors/skipped, nový spustitelný JAR. Včetně všech P1–P3 regresí a dosavadních formátů P4; stejná lokální Java 17.0.21 a testovací Docker API 1.44 jako níže. |
+| Nová soutěžní část | **6 HTTP/PostgreSQL + 7 unit validačních + 2 service + 1 migrační scénář PASS.** Uložení obou sportů, stejné scopes items/counts, mutace přihlášek, správné přesné verze, dvě souběžné úpravy s jediným vítězem, rollback pravidel/verze/přihlášky při selhání auditu. Audit přihlášky obsahuje oba klíče vztahu, žádný obsah formuláře. |
+| Validace a oprávnění | Odmítnutý cizí sport/sezóna, duplicitní přihláška/ročník, překryv i mezera v bodování a neúplná konfigurace. Včetně inkluzivních hranic až integer max, WON_PARTS, nájezdů s nulovým bonusem, správného vítěze kontumace, H2H bloku a podmínek PART_SCORE. USER/PENDING/anonym a aktivní CHILD nemají správní obsah/podzdroje/counts; CSRF a neměnná DTO pole ověřena. Fresh auth následuje až po klubovém zámku. |
+| Migrace a historie | V1–V6 aplikované na čistých PostgreSQL 16. Upgrade V5 → V6 zachoval snapshot všech původních 13 tabulek, identity/BCrypt/setup/past season a již zamčený formát i checksumy V1–V5; po upgradu **19 tabulek**, opakovaný migrate bez DDL. DB EXCLUDE odmítl překryv a guardy odmítly cizí sport, odemčení i změny použitých pravidel/kontumací/kritérií/přihlášek. Použitý ročník chrání i datumové hranice sezóny bez dosavadního týmu. Archivace ponechává čtení. |
+| Frontend Node 24.14.0 | **101/101 PASS** přes `npm test -- --maxWorkers=1`, lint/typecheck/produkční build PASS. Skutečné REST/CSRF mutace, atomický create ročníku, zachování dynamických řádků při odebrání/přesunu, přesná velká version, zachování pravidel po 409 a výslovný reload, add/remove přihlášek a read-only archiv. Build používá izolované API `http://localhost:18080/api`. Žádná nová runtime závislost. |
+| Browser desktop | Chromium + nový JAR + nový Next production standalone + nová izolovaná DB: **3/3 PASS, žádný skip**. Dva auth/session/výpadek regresní scénáře a celý průchod P4 (`competitions.spec.ts`). |
+| Browser mobil | Pixel 7 nad druhou novou DB s nově aplikovanými V1–V6: **3/3 PASS, žádný skip**. Celkem znovu **6/6** browserových scénářů. |
+| Vizuální kontrola | Prohlédnuté snímky fotbalového i basketbalového ročníku na desktopu a Pixelu 7 včetně bodování, kontumací, priorit a přihlášek; mobilní výřezy umožnily ověřit čitelnost. Browser výslovně ověřil absenci horizontálního přetékání u obou sportů. |
+| Obsah, dokumentace a konfigurace | Veřejný obsah **239 souborů PASS**, lokální souborové odkazy v 15 Markdown dokumentech PASS, základní/dev/produkční Compose konfigurace a `git diff --check` PASS. Stavová matice, plán, API kontrakt, autorizace, DB popis, README a uživatelská příručka odpovídají celému P4. LICENSE/NOTICE a V1–V4 shodné s HEAD, V5 má nadále původní SHA-256 `31E00EC44F61B2358D4E9D0FB8B2ADD5D4E0F122EC5631B7A71DBE0ED74BD291`; V6 `F1B6432C72A68DE16FD37D9D56CE4EEDE3B925514022D3E37B8A9697DD9A16FF`. |
+
+Browserový P4 průchod registruje/onboarduje jednoho ADMIN, převezme testovací klub, skutečnými formuláři založí fotbal a basketbal, sezónu, dva odlišné formáty, čtyři týmy (klub i externí soupeř pro každý sport), soutěže a úplné ročníky. Zadá fotbalové body 3/1/0 a basketbalové 2/1 pro základní dobu i prodloužení, oddělené kontumace 0:3/3:0 a 0:20/20:0, priority i rozdílnou H2H politiku; přihlásí všechny týmy. UI odmítne překryv a zachová rozpracovaný formulář. Dvě skutečné karty vyvolají optimistic konflikt a explicitní reload, přímé HTTP odmítne cizí sport. Archivace zachová oba přihlášené týmy a odstraní správní mutace v UI. Jde o akceptaci konfigurace P4, žádný fiktivní výpočet výsledků.
+
+Reprodukce z `frontend/`: nad **novou izolovanou DB** a odpovídajícím backendem/frontendem nastavte soukromé `CLUB_SETUP_TOKEN`/`E2E_SETUP_TOKEN` a testovací `E2E_BASE_URL`/`E2E_API_URL`; spusťte `E2E_SETUP_PROJECT=desktop npm run test:e2e -- auth.spec.ts competitions.spec.ts --project=desktop --workers=1`. Pro mobil připravte **další novou DB**, restart backendu a `mobile` v obou volbách. Tento setup scénář se nad stejnou DB nekombinuje s `match-formats.spec.ts`, `club-setup.spec.ts`, `roster.spec.ts` ani `guardians.spec.ts`. Každý přebírá nový klub pouze jednou. Běhy použily pouze vlastní zahoditelné kontejnery bez projektových volumes a porty API/frontend 18080/13000; DB port byl náhodný.
+
+Lokální výstupy jsou ignorované `.verification/p4-full-*` a `.verification/p4-competition-*.png`; testovací procesy a kontejnery se po obou průchodech uklidily. Běžná uživatelova DB nebyla čtena ani změněna. Commit/push, GitHub CI tohoto necommitovaného stavu, nové celé Docker image buildy, produkční HTTPS/ACME ani provozní backup/restore neproběhly; před merge musí projít relevantní CI. P5–P9 zůstávají navazující plán.
+
+## 6. 11. 2026 — druhá kontrola P4 před commitem
+
+Znovu zkontrolován celý rozpracovaný průchod formátů zápasu: DTO/REST, transakční zámky a fresh auth, SQL scope seznamu i počtu, migrace a historický guard, skutečný formulář, bezpečné chyby a optimistic konflikty. Refaktor repository sdílí `FROM` i filtr mezi items/count, používá explicitní sloupce a přímý `count(*)` bez poddotazu s celou projekcí. Formulář má synchronní ochranu proti dalšímu submitu během probíhající mutace; po chybě lze požadavek znovu odeslat. API kontrakt, závislosti a V1–V5 se touto druhou kontrolou neměnily.
+
+| Kontrola | Nový výsledek |
+| --- | --- |
+| Backend Java 17 `./mvnw.cmd -B -ntp verify` | **68 testů PASS**, žádné failures/errors/skips; včetně nového JAR. Použito stejné lokální nastavení Docker API 1.44 jako v prvním ověření níže. |
+| Rozšířené HTTP regrese P4 | **8 scénářů PASS**: nově také odmítnutý pokus klienta nastavit identitu/sport/lockedAt, nekanonické a přetékající verze, prázdný filtr a stránka za koncem se správnými counts, auditní rollback vytvoření i úpravy bez dalšího řádku nebo auditu. Původní oprávnění, souběh a historické kontroly zůstaly zelené. |
+| Frontend Node 24.14.0 | **94/94 testů PASS** přes `npm test -- --maxWorkers=1`, bez unhandled errors; nově opakovaný submit vytváří pouze jeden požadavek/jeden CSRF fetch a po validační chybě funguje další submit. Lint, typecheck a nový produkční build PASS. |
+| Skutečný browser | Znovu **6/6 PASS, žádný skip**: desktop 3/3 a Pixel 7 3/3, každý nad novou izolovanou PostgreSQL 16 DB s V1–V5, skutečným novým JAR a novým Next production standalone buildem. |
+| Obsah a konfigurace | Veřejný obsah, lokální Markdown souborové odkazy v 15 dokumentech, základní/dev/produkční Compose konfigurace a `git diff --check` znovu PASS. LICENSE, NOTICE a V1–V4 shodné s HEAD; V5 zdroj a použitý build mají shodný SHA-256. |
+
+První souběžný frontendový běh skončil timeoutem startu tří Vitest workerů při nízké volné paměti; jeho dílčí výsledky se nepočítají jako úspěšné ověření. Celá sada byla následně zopakovaná s jedním workerem a prošla výše uvedenými 94 testy. Produkční konfigurace ani testy kvůli tomu nebyly oslabeny. Lokální logy druhé kontroly jsou ignorované `.verification/p4-review-*`; browserové logy/snímky se obnovily v `.verification/p4-browser-*` a `.verification/p4-*.png`. Nové desktopové i mobilní snímky byly vizuálně zkontrolované a test opět ověřil absenci horizontálního přetékání. Testovací procesy byly ukončené a oba zahoditelné DB kontejnery odstraněné; běžná klubová DB ani projektové volumes nebyly použity. Commit/push, GitHub CI a produkční nasazení nebyly provedeny.
+
+## 6. 11. 2026 — první část P4, izolované lokální ověření
+
+Navázáno na rozpracované změny ve větvi `feat/p4-match-formats` nad `0573a6c`. Uživatel výslovně povolil izolované ověření, čímž pro tyto běhy nahradil omezení ze 4. 11. Běžná klubová DB ani projektové volumes nebyly použity. Rozsah: ADMIN formáty zápasu přes backend a skutečné UI, Flyway V5; dílčí R12/R13/R16 a T01/T03/T04/T07/T08/T10/T11. P4 jako celek ani uvedené požadavky nejsou plně akceptované.
+
+| Kontrola | Výsledek a důkaz |
+| --- | --- |
+| Backend Java 17, Maven Wrapper `verify` | **PASS: 67 testů, 0 failures, 0 errors, 0 skipped**, včetně balení spustitelného JAR. Java 17.0.21 z lokálních ignorovaných nástrojů, globální Java se neměnila. |
+| P4 backend | **7 HTTP + 5 service + 1 migrační test PASS**: oba sporty, stránkování a filtr/count, neplatné kombinace, velké řetězcové verze, konflikt souběžných editorů, auditní rollback, historický guard, ADMIN/USER/PENDING/aktivní CHILD/CSRF a odvolaná ADMIN session. |
+| Migrace | Čisté Testcontainers DB aplikovaly V1–V5. Samostatný upgrade V4 → V5 zachoval všechny řádky původních tabulek a jejich migrační checksumy, osoby/UUID/BCrypt hash/setup/hráče/rodičovskou vazbu. Druhý migrate neprovedl žádnou migraci. V1–V4 shodné s HEAD; schéma po V5 má 13 tabulek. Běžná uživatelova DB nebyla kontrolována ani migrována. |
+| Frontend Node 24.14.0 | **93/93 testů PASS**, lint, typecheck a produkční build PASS. Ověřen REST+CSRF, přesná version, zachování rozepsaných hodnot, explicitní reload, použitá konfigurace, USER/CHILD brána a přístupná chyba pole sportu. Build použil testovací API URL `http://localhost:18080/api`. |
+| Browser desktop + mobil | **6/6 PASS, žádný skip**: na každé ze dvou nových izolovaných PostgreSQL 16 DB auth/session/výpadek a celý P4 průchod přes skutečný JAR + Next production standalone. UI vytvořilo sporty i oba formáty, filtr omezil seznam i count, dvě karty vyvolaly skutečný optimistic konflikt a explicitní reload zachoval/odstranil úpravy podle pokynu. |
+| Vizuální kontrola a úklid | Prohlédnuty desktopový i Pixel 7 snímek formulářů; browserový test ověřil absenci horizontálního přetékání. Testovací backend/frontend byly ukončeny a oba zahoditelné DB kontejnery odstraněny bez projektových volumes. Logy/snímky zůstávají ignorované v `.verification/`. |
+| Veřejný obsah a dokumentace | Kontrola veřejného obsahu PASS; lokální souborové Markdown odkazy v 15 dokumentech PASS; základní/dev/produkční Compose konfigurace PASS (produkční soubor jako override základního); `git diff --check` PASS. |
+
+První pokusy odhalily chybějící povinná pole v mockovaných JSON chybách a chyby testovacího setupu pro hráče/audit; po opravě jsou výše uvedené finální běhy zelené. Docker Desktop 29.1.3 vyžadoval pro stávající Testcontainers klient explicitní API 1.44 pouze v testovacím shellu (`JAVA_TOOL_OPTIONS=-Dapi.version=1.44`); první pokus bez něj selhal ještě před integračními scénáři. Závislosti byly instalované přes `npm ci`; žádné runtime závislosti se neměnily. Lokální logy a nástroje jsou pouze v ignorované `.verification/`.
+
+Reprodukce browserového průchodu z `frontend/`: nad novou izolovanou DB a sestavou s odpovídajícími `E2E_BASE_URL`, `E2E_API_URL`, soukromým backendovým `CLUB_SETUP_TOKEN` a shodným `E2E_SETUP_TOKEN` spusťte `E2E_SETUP_PROJECT=desktop npm run test:e2e -- auth.spec.ts match-formats.spec.ts --project=desktop --workers=1`. Pro mobil použijte další čistou DB, restart backendu a `mobile` v obou volbách. Každá DB dovolí právě jeden setup scénář; nekombinujte jej nad stejnou DB s `club-setup.spec.ts`, `roster.spec.ts` nebo `guardians.spec.ts`. Lokální běh použil náhodné DB porty a testovací porty API/frontend 18080/13000; připravenost DB se čekala přes TCP `pg_isready` před startem JAR.
+
+Soutěže, ročníky, přihlášky, soutěžní body/kontumace, pořadí, výsledky a automatické uzamčení při prvním výsledku zůstávají navazující prací. Neproběhlo produkční nasazení, HTTPS/ACME, provozní záloha/obnova, nové celé Docker image buildy ani GitHub CI tohoto necommitovaného stavu. Tento záznam nenahrazuje jejich budoucí akceptaci.
+
+## 4. 11. 2026 — rozpracovaná první P4, bez spuštění
+
+Před zahájením práce byl po fetch ověřen čistý main `0573a6c`, shodný s origin/main i upstream/main. Práce vzniká pouze v samostatném sport-club-system ve větvi `feat/p4-match-formats`.
+
+Připravené zdrojové soubory: formáty zápasu service/repository/REST/UI, validační a historická pravidla, neaplikovaný návrh V5. Migrační návaznost na skutečnou uživatelovu DB je otevřená do vyjasnění jejího fyzického stavu. Připravené testy zahrnují konfiguraci dvou sportů, neplatné kombinace, přesné verze, souběžné editory, uzamčená pravidla, auditní rollback, HTTP ADMIN/USER/PENDING/CSRF a UI konflikty/CHILD bránu. **Žádný z těchto testů nebyl spuštěn.**
+
+Na výslovný pokyn uživatele po zákazu nebyl spuštěn Docker/container, databáze, aplikace, Maven/npm kontroly, testy, build ani validační skripty. Před tímto pokynem proběhl pouze dotaz na verzi již běžícího Docker daemonu a příprava lokálních nástrojů mimo repozitář, bez startu sestavy. Neproběhla DB migrace ani browserová akceptace. Tato sekce není úspěšným ověřením P4; historické výsledky níže platí pouze pro tehdejší dodávky.
+
 Historické ověření E0 z 5. 10. 2026 nad novým samostatným `sport-club-system`, odvozeným ze šablony commit 32dded5e33b83f038655199eb81044fa3d4c66a8. Výchozí stav a chyby před úpravami jsou v [baseline](baseline.md). Aktuální ověření P1 z 27. 10. 2026 je na konci dokumentu; starší výsledky nejsou automaticky důkazem nové verze.
 
 ## Provedené kontroly E0 — 5. 10. 2026
