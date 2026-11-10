@@ -1,5 +1,11 @@
 # Ověření projektu
 
+## 10. 11. 2026 — první CI PR #27 a oprava Docker API klienta
+
+[První CI běh PR #27](https://github.com/Dasky02/sport-club-system/actions/runs/42821726828) nad headem `c4a3a05`: Frontend checks **PASS**, Public content and Compose **PASS**, Backend verify **FAIL**. Backend se pod Java 17 zkompiloval, ale Testcontainers 1.20.4 při hledání Dockeru odeslal API 1.32; runner odpověděl HTTP 400 s požadavkem na minimálně 1.40. Maven uvedl 41 testů, 0 assertion failures, 11 errors; PostgreSQL testovací třídy skončily při inicializaci kontejneru, jejich doménové scénáře se neprovedly. Tento běh není úspěšnou backendovou akceptací P4.
+
+Do Maven kroku backendového CI doplněno `JAVA_TOOL_OPTIONS=-Dapi.version=1.44`, stejné nastavení jako v doložených lokálních bězích ze 6. 11. Změna platí jen pro testovací/build proces CI, nikoli pro produkční backend či Docker daemon. Závislosti, testy, migrace a přístupové kontroly se nemění; žádný test není vypnutý. Výsledek nového CI po této opravě se doplní až podle skutečného dokončeného běhu.
+
 ## 10. 11. 2026 — zachování rozepsaného ročníku a kontrola mapy testů
 
 Ve větvi `feat/p4-match-formats` nad `8af3a77` opravena ztráta rozepsaného nového ročníku při vytvoření nebo přejmenování soutěže na stejné stránce. Původní `options.reload()` přepnul společný ResourceView do loading stavu a odmountoval editor. Oprava používá vrácené Competition DTO k aktualizaci výběru v lokálním stavu; obnoví pouze seznamy soutěží a ročníků. Zachová vybranou soutěž/sezónu/formát, bodování a hranice skóre, kontumace, kritéria i H2H nastavení. Nezavádí localStorage, produkční mocky, nové závislosti ani změnu API, backendu nebo schématu. Rozsah: R12, konfigurační R13/R14 a T01/T11.
