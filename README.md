@@ -18,6 +18,8 @@ P4 přidává **formáty zápasu** (`/admin/match-formats`) a **soutěže a roč
 
 Backend používá Spring Boot 4.0.3 a springdoc 3.0.3 podle [oficiální kompatibility](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot). Přesné verze frontendových závislostí jsou v `frontend/package.json` a `package-lock.json`. Běžné kontroly nevyžadují žádný token ani produkční secrets.
 
+Verze testovacího Testcontainers vychází z dependency managementu Spring Boot (nyní 2.0.3); projekt ji samostatně nepřepisuje. JUnit a PostgreSQL moduly používají názvy `testcontainers-junit-jupiter` a `testcontainers-postgresql` řady 2.x. Kompatibilitu Docker API řeší knihovna, běžný testovací běh nepotřebuje ruční `api.version` ani `JAVA_TOOL_OPTIONS` workaround. Při změně Spring Boot ověřte celou backendovou sadu včetně PostgreSQL a migračních testů.
+
 ## Od čistého klonu: lokální vývoj
 
 Veřejný týmový repozitář je [Dasky02/sport-club-system](https://github.com/Dasky02/sport-club-system). Klonujte jej a přejděte do jeho kořene:

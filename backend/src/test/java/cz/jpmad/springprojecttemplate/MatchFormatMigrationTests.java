@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 /** V5 extends a populated V4 without rewriting identities, relationships or history. */
 @Testcontainers
 class MatchFormatMigrationTests {
-    @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+    @Container static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
 
     @Test void v4DataAndMigrationChecksumsSurviveAndNewConfigurationIsConstrained() throws Exception {
         migrate("4");

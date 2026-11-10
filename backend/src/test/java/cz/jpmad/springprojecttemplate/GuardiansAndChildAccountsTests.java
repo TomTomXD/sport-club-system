@@ -8,7 +8,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.*;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.*;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"server.servlet.session.cookie.secure=false","app.club.setup-token=p3-test-setup-only"})
 @Testcontainers
 class GuardiansAndChildAccountsTests {
-    @Container static PostgreSQLContainer<?> postgres=new PostgreSQLContainer<>("postgres:16-alpine");
+    @Container static PostgreSQLContainer postgres=new PostgreSQLContainer("postgres:16-alpine");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry r) { r.add("spring.datasource.url",postgres::getJdbcUrl);r.add("spring.datasource.username",postgres::getUsername);r.add("spring.datasource.password",postgres::getPassword); }
     @TestConfiguration static class FixedTime { @Bean @Primary Clock p3Clock() { return Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"),ZoneOffset.UTC); } }
     @LocalServerPort int port;

@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.*;
 import java.sql.*;
 import java.util.*;
@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @Testcontainers
 class CompetitionMigrationTests {
-    @Container static PostgreSQLContainer<?> postgres=new PostgreSQLContainer<>("postgres:16-alpine");
+    @Container static PostgreSQLContainer postgres=new PostgreSQLContainer("postgres:16-alpine");
     @Test void v5IdentityHistoryAndFormatRowsSurviveUpgradeToNineteenTables() throws Exception {
         migrate("5");
         UUID admin=UUID.randomUUID(),person=UUID.randomUUID(),sport=UUID.randomUUID(),format=UUID.randomUUID();
