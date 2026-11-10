@@ -22,9 +22,6 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
       - run: ./mvnw -B -ntp verify
-        env:
-          # Testcontainers 1.20.4 defaults to an API rejected by current Docker runners.
-          JAVA_TOOL_OPTIONS: -Dapi.version=1.44
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
