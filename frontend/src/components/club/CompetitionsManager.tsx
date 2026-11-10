@@ -32,7 +32,7 @@ const loadOptions = async () => {
 };
 type Options = { sports: SportResponse[]; seasons: SeasonResponse[]; competitions: Competition[]; formats: MatchFormatResponse[] };
 
-function CompetitionForm({ sports, initial, saved }: { sports: SportResponse[]; initial?: Competition; saved: () => void }) {
+function CompetitionForm({ sports, initial, saved }: { sports: SportResponse[]; initial?: Competition; saved: (competition: Competition) => void }) {
   const [error, setError] = useState<unknown>(null), [pending, setPending] = useState(false);
   const submitting = useRef(false);
   const errors = competitionFieldErrors(error);
@@ -42,9 +42,11 @@ function CompetitionForm({ sports, initial, saved }: { sports: SportResponse[]; 
     submitting.current = true; setPending(true); setError(null);
     try {
       const name = String(data.get("name") ?? "").trim();
-      if (initial) await renameCompetition(initial.id, name);
-      else { await createCompetition({ name, sportId: String(data.get("sportId")) }); form.reset(); }
-      saved();
+      const competition = initial
+        ? await renameCompetition(initial.id, name)
+        : await createCompetition({ name, sportId: String(data.get("sportId")) });
+      if (!initial) form.reset();
+      saved(competition);
     } catch (caught) { setError(caught); } finally { submitting.current = false; setPending(false); }
   };
   return <form className="club-form" aria-label={initial ? `Přejmenovat soutěž ${initial.name}` : "Nová soutěž"} onSubmit={submit} aria-busy={pending}>
@@ -81,20 +83,28 @@ function NewSeasonForm({ options }: { options: Options }) {
     <FormError error={error} fieldErrors={errors} /><button className="button" disabled={pending || !format}>{pending ? "Ukládám…" : "Vytvořit soutěžní ročník"}</button>
   </form>;
 }
-function Content() {
+function LoadedContent({ initialOptions }: { initialOptions: Options }) {
   const [competitionPage, setCompetitionPage] = useState(0), [seasonPage, setSeasonPage] = useState(0), [sport, setSport] = useState("");
-  const options = useResource(loadOptions);
+  const [data, setOptions] = useState(initialOptions);
   const loadCompetitions = useCallback(() => getCompetitions(competitionPage, 20, sport || undefined), [competitionPage, sport]);
   const loadSeasons = useCallback(() => getCompetitionSeasons(seasonPage, 20, { sportId: sport || undefined }), [seasonPage, sport]);
   const competitions = useResource(loadCompetitions), seasons = useResource(loadSeasons);
-  const saved = () => { competitions.reload(); seasons.reload(); options.reload(); };
+  const saved = (competition: Competition) => {
+    // Update choices without unmounting the season editor and losing its draft.
+    setOptions((options) => ({ ...options, competitions: options.competitions.some((c) => c.id === competition.id)
+      ? options.competitions.map((c) => c.id === competition.id ? competition : c)
+      : [...options.competitions, competition] }));
+    competitions.reload(); seasons.reload();
+  };
   return <section className="club-page"><AdminNav /><p className="eyebrow">Administrace klubu</p><h1>Soutěže a ročníky</h1><p className="lead">Soutěž patří jednomu sportu. Každý její ročník má vlastní úplné bodování, kontumace, pořadí a přihlášené týmy.</p>
-    <ResourceView resource={options.resource} reload={options.reload}>{(data) => <>
       <SelectField name="sportFilter" label="Filtr sportu soutěží" value={sport} onChange={(event) => { setSport(event.target.value); setCompetitionPage(0); setSeasonPage(0); }}><option value="">Všechny sporty</option>{data.sports.map((s) => <option value={s.id} key={s.id}>{s.name}</option>)}</SelectField>
       <div className="club-two-columns"><section className="detail-card"><CompetitionForm sports={data.sports} saved={saved} /></section><section className="detail-card"><NewSeasonForm options={data} /></section></div>
       <h2>Soutěžní ročníky</h2><ResourceView resource={seasons.resource} reload={seasons.reload}>{(result) => <div className="club-stack">{result.items.length ? result.items.map((s) => <article className="detail-card" key={s.id} aria-label={`${s.competitionName} ${s.seasonName}`}><h3>{s.competitionName} · {s.seasonName}</h3><p>{s.sportName} · {s.matchFormatName} · {s.archived ? "Archivováno" : s.lockedAt ? "Použitá pravidla" : "Otevřený ročník"}</p><Link className="button button-secondary" href={`/admin/competitions/${encodeURIComponent(s.id)}`}>Pravidla a přihlášky</Link></article>) : <EmptyState>Zatím nejsou založené soutěžní ročníky.</EmptyState>}<Pagination page={seasonPage} result={result} changePage={setSeasonPage} /></div>}</ResourceView>
       <h2>Soutěže</h2><ResourceView resource={competitions.resource} reload={competitions.reload}>{(result) => <div className="club-cards">{result.items.map((c) => <article key={c.id} className="detail-card" aria-label={c.name}><h3>{c.name}</h3><p>{c.sportName}</p><CompetitionForm sports={data.sports} initial={c} saved={saved} /></article>)}<Pagination page={competitionPage} result={result} changePage={setCompetitionPage} /></div>}</ResourceView>
-    </>}</ResourceView>
   </section>;
+}
+function Content() {
+  const options = useResource(loadOptions);
+  return <ResourceView resource={options.resource} reload={options.reload}>{(data) => <LoadedContent initialOptions={data} />}</ResourceView>;
 }
 export function CompetitionsManager() { return <AccessGate completeProfile capability="MANAGE_CLUB"><Content /></AccessGate>; }

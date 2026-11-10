@@ -1,5 +1,21 @@
 # Ověření projektu
 
+## 10. 11. 2026 — zachování rozepsaného ročníku a kontrola mapy testů
+
+Ve větvi `feat/p4-match-formats` nad `8af3a77` opravena ztráta rozepsaného nového ročníku při vytvoření nebo přejmenování soutěže na stejné stránce. Původní `options.reload()` přepnul společný ResourceView do loading stavu a odmountoval editor. Oprava používá vrácené Competition DTO k aktualizaci výběru v lokálním stavu; obnoví pouze seznamy soutěží a ročníků. Zachová vybranou soutěž/sezónu/formát, bodování a hranice skóre, kontumace, kritéria i H2H nastavení. Nezavádí localStorage, produkční mocky, nové závislosti ani změnu API, backendu nebo schématu. Rozsah: R12, konfigurační R13/R14 a T01/T11.
+
+| Kontrola | Skutečný výsledek tohoto běhu |
+| --- | --- |
+| Reprodukce před opravou | Dva nové komponentové scénáře (create/rename soutěže) selhaly na ztraceném výběru soutěže: očekávané `competition`, skutečně prázdná hodnota. Ostatních sedm scénářů souboru prošlo. |
+| Regrese po opravě | Celý `competitions.test.tsx`: **9/9 PASS**. Nové scénáře kontrolují zachování všech výběrů a celé konfigurace, aktualizaci možnosti podle REST odpovědi, následné odeslání původního draftu a CSRF obou mutací. |
+| Celá FE sada | Node **24.14.0** z kořenového `.nvmrc`, **103/103 PASS**, 11 souborů, `npm test -- --maxWorkers=1`, žádný skip. Zahrnuje auth/provider/transport a P1–P4 komponentové regrese. |
+| FE lint / typy / build | `npm run lint`, `npm run typecheck` a `npm run build`: **PASS**. Produkční Next standalone sestavený. Použité závislosti instalované přes `npm ci`; lockfile nezměněn. Node 24.14.0 připraven pouze v dočasném adresáři mimo repozitář, bez změny globální instalace. |
+| Veřejný obsah a dokumentace | `python scripts/check_public_content.py`: **240 souborů PASS**. Ověřeno **58 lokálních odkazů** v nové mapě testů, požadavcích a příručce; všechny cíle existují. `git diff --check`: **PASS**. |
+| Compose | Základní, dev i produkční kombinace s `.env.example`: **PASS** přes `config --quiet`. To nevyžaduje běžící daemon ani přístup do DB. |
+| Kontrola testů vůči zadání | Vytvořena [mapa implementovaných funkcí a testů](test-coverage.md) pro E0 + P1–P4. Každý uvedený funkční celek má dohledatelné testy; matice rozlišuje backend unit/HTTP/PostgreSQL, FE komponenty/transport a skutečný browser. Není měřením procenta pokrytí ani úplnou akceptací celého zadání. |
+
+**Dnes znovu neprovedeno:** Maven verify, HTTP/PostgreSQL integrační a migrační testy, Playwright proti skutečné sestavě, vizuální kontrola, nové CI, Docker image buildy, HTTPS ani obnova zálohy. Backend a migrace se neměnily; místní výchozí Java je 25 a Docker daemon neběží. Historické backendové/browserové výsledky níže zůstávají pouze historickými důkazy. Běžná klubová DB nebyla čtena ani změněna. Playwright není součástí aktuálního CI workflow; před merge musí projít relevantní CI konkrétního publikovaného commitu. Tento záznam nevytváří commit, push ani PR.
+
 ## 6. 11. 2026 — dokončení celého P4 a lokální akceptace
 
 Dokončen celý pracovní balíček **P4 — základ soutěží**, nikoli jen formáty: soutěže, ročníky, přihlášky klubových/externích sezónních týmů, úplné bodování podle výsledku/ukončení a rozsahů skóre, obě soutěžní kontumace, kritéria pořadí včetně H2H politiky, skutečné ADMIN API i UI. Navazuje na R12 a konfigurační části R13/R14/R16, T01–T04/T07/T08/T10/T11/T14 a obecné autorizační hranice. V5/V6 realizují 19 z 38 cílových tabulek. Výsledky, první uzamčení při výsledku a výpočet tabulek/statistik jsou samostatné P5/P6; lokální akceptace P4 neuzavírá E1/E3 ani celý projekt.

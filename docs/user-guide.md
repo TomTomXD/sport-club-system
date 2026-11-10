@@ -22,6 +22,8 @@ Dokončený aktivní STANDARD ADMIN otevře **Soutěže a ročníky** (`/admin/c
 6. **Vytvořit soutěžní ročník** uloží vše v jedné transakci. Chyba nezanechá neúplný ročník. Otevře se detail **Pravidla a přihlášky**, kde **Zobrazit pravidla ročníku** ukazuje uložené hodnoty a **Upravit pravidla ročníku** otevře celé editovatelné nastavení.
 7. V administraci týmů připravte klubové týmy i externí soupeře ve stejné sezóně a sportu. V detailu ročníku zvolte **Tým do soutěže → Přihlásit tým**. Každá přihláška používá sezónní název; duplicitní přihlášku ani cizí sport/sezónu backend nepřijme. **Odebrat přihlášku** je dostupné jen u nepoužitého otevřeného ročníku.
 
+Vytvoření nebo přejmenování soutěže na této stránce aktualizuje výběr soutěží a zachová rozepsaný nový ročník včetně bodování, kontumací a kritérií. Samotný ročník uloží až **Vytvořit soutěžní ročník**.
+
 Pravidla i přihlášky sdílejí verzi ročníku. Při souběhu se rozepsané hodnoty zachovají a **Zahodit úpravy a načíst aktuální ročník** je výslovně nahradí serverovým stavem. Během úpravy pravidel jsou mutace přihlášek pozastavené, aby reload neztratil rozpracovaná pravidla. Po archivaci sezóny nebo historickém uzamčení zůstane čtení a přihlášené týmy; pravidla/přihlášky se nepřepisují. Nová odlišná použitá pravidla vyžadují nový formát/ročník. P4 konfiguruje budoucí výpočty; samotné zápasy, výsledky a tabulky dodají P5/P6.
 
 ## Přihlášení a vlastní osoba
